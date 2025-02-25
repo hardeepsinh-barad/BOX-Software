@@ -1,7 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app import models, schemas
+from app.auth import get_password_hash
+import logging
+from sqlalchemy.orm import selectinload
 
+
+logger = logging.getLogger(__name__)
 # ---------------------------
 # Organization CRUD
 # ---------------------------
@@ -112,7 +117,11 @@ async def delete_permission(db: AsyncSession, permission_id: int):
 # User CRUD
 # ---------------------------
 async def get_user(db: AsyncSession, user_id: int):
-    result = await db.execute(select(models.User).where(models.User.id == user_id))
+    result = await db.execute(
+        select(models.User)
+        .where(models.User.id == user_id)
+        .options(selectinload(models.User.role))  # Preload role data
+    )
     return result.scalars().first()
 
 async def get_users(db: AsyncSession, skip: int = 0, limit: int = 100):
@@ -120,11 +129,16 @@ async def get_users(db: AsyncSession, skip: int = 0, limit: int = 100):
     return result.scalars().all()
 
 async def create_user(db: AsyncSession, user: schemas.UserCreate):
-    db_user = models.User(**user.dict())
+    user_data = user.dict()
+    user_data.pop("password")  # Remove password to avoid duplicate arguments
+    hashed_password = get_password_hash(user.password)
+    
+    db_user = models.User(**user_data, password=hashed_password)  # Now password is set correctly
     db.add(db_user)
     await db.commit()
     await db.refresh(db_user)
     return db_user
+
 
 async def update_user(db: AsyncSession, user_id: int, user: schemas.UserUpdate):
     db_user = await get_user(db, user_id)
@@ -138,9 +152,14 @@ async def update_user(db: AsyncSession, user_id: int, user: schemas.UserUpdate):
 async def delete_user(db: AsyncSession, user_id: int):
     db_user = await get_user(db, user_id)
     if db_user:
-        await db.delete(db_user)
-        await db.commit()
-    return db_user
+        try:
+            await db.delete(db_user)
+            await db.commit()
+            return db_user
+        except Exception as e:
+            await db.rollback()
+            logger.error(f"Error deleting user: {str(e)}")
+            raise
 
 async def get_user_by_email(db: AsyncSession, email: str):
     result = await db.execute(select(models.User).where(models.User.email == email))
