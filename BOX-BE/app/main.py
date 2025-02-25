@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import organization, users, reason, device_reason_log, device_log, auth
+from app.routers import organization, users, reason, device_reason_log, device_log, auth, mqtt_sender
 from app.database import engine, get_db
 from app import models, crud, schemas
 
@@ -23,6 +23,7 @@ app.include_router(reason.router)
 app.include_router(device_reason_log.router)
 app.include_router(device_log.router)
 app.include_router(auth.router)
+app.include_router(mqtt_sender.router, prefix="/api")
 
 # Create tables on startup (for development; use migrations in production)
 @app.on_event("startup")
@@ -55,9 +56,9 @@ def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
     openapi_schema = get_openapi(
-        title="My Web App",
+        title="My Machine Tracker App",
         version="1.0.0",
-        description="This is a very custom OpenAPI schema",
+        description="APIs for machine tracker",
         routes=app.routes,
     )
     app.openapi_schema = openapi_schema
