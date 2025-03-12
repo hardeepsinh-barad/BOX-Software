@@ -1,6 +1,6 @@
 import React from 'react';
 import { Form, Input, Modal, Select } from 'antd';
-import userService from '../../../src/services/userService';
+import userService from '../services/userService';
 
 const { Option } = Select;
 

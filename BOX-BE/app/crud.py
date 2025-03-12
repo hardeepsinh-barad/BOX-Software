@@ -4,6 +4,7 @@ from app import models, schemas
 from app.auth import get_password_hash
 import logging
 from sqlalchemy.orm import selectinload
+from typing import List
 
 
 logger = logging.getLogger(__name__)
@@ -234,3 +235,43 @@ async def delete_org_device_map(db: AsyncSession, map_id: int):
         await db.delete(db_map)
         await db.commit()
     return db_map
+
+# ---------------------------
+# Reason CRUD
+# ---------------------------
+async def get_reasons(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[models.Reason]:
+    result = await db.execute(select(models.Reason).offset(skip).limit(limit))
+    return result.scalars().all()
+
+async def get_reasons_by_org_id(db: AsyncSession, org_id: int, skip: int = 0, limit: int = 100) -> List[models.Reason]:
+    result = await db.execute(select(models.Reason).where(models.Reason.org_id == org_id).offset(skip).limit(limit))
+    return result.scalars().all()
+
+async def create_reason(db: AsyncSession, reason: schemas.ReasonCreate) -> models.Reason:
+    db_reason = models.Reason(**reason.dict())
+    db.add(db_reason)
+    await db.commit()
+    await db.refresh(db_reason)
+    return db_reason
+
+async def get_reason(db: AsyncSession, reason_id: int) -> models.Reason | None:
+    result = await db.execute(select(models.Reason).filter(models.Reason.id == reason_id))
+    return result.scalars().first()
+
+async def update_reason(db: AsyncSession, reason_id: int, reason: schemas.ReasonCreate) -> models.Reason | None:
+    db_reason = await get_reason(db, reason_id)
+    if db_reason:
+        for key, value in reason.dict().items():
+            setattr(db_reason, key, value)
+        await db.commit()
+        await db.refresh(db_reason)
+        return db_reason
+    return None
+
+async def delete_reason(db: AsyncSession, reason_id: int) -> models.Reason | None:
+    db_reason = await get_reason(db, reason_id)
+    if db_reason:
+        await db.delete(db_reason)
+        await db.commit()
+        return db_reason
+    return None

@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
-import { Typography, Layout, Button, Table, Space, Input } from 'antd';
-import { AudioOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
+import { Typography, Layout, Button, Table, Space, Input, message } from 'antd';
 import AddOrganizationForm from './AddOrganizationForm';
-import ConfirmationModal from './ConfirmationModal';
 
 const { Content } = Layout;
 const { Title } = Typography;
@@ -11,9 +9,30 @@ const { Search } = Input;
 export default function OrganizationManagement() {
   const [organizations, setOrganizations] = useState([]);
   const [addFormVisible, setAddFormVisible] = useState(false);
-  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
-  const [recordToDelete, setRecordToDelete] = useState(null);
   const [searchText, setSearchText] = useState('');
+  const [editingRecord, setEditingRecord] = useState(null);
+
+  useEffect(() => {
+    // Fetch organizations from API
+    const fetchOrganizations = async () => {
+      try {
+        const response = await fetch('http://192.168.1.27:8000/organizations/'); // Replace with your API endpoint
+        const data = await response.json();
+
+        // Ensure each item has a unique key
+        const organizationsWithKeys = data.map((org, index) => ({
+          ...org,
+          key: org.id || index.toString(), // Use org.id if available, otherwise use index
+        }));
+
+        setOrganizations(organizationsWithKeys);
+      } catch (error) {
+        console.error('Error fetching organizations:', error);
+      }
+    };
+
+    fetchOrganizations();
+  }, []); // Empty dependency array ensures this runs only once on component mount
 
   const handleAddOrganization = (values) => {
     setOrganizations([...organizations, { ...values, key: organizations.length + 1 }]);
@@ -21,24 +40,28 @@ export default function OrganizationManagement() {
   };
 
   const handleEditOrganization = (record) => {
-    // Implement edit functionality here
+    setEditingRecord(record);
+    // Implement edit functionality here, e.g., open a modal form
     console.log('Edit record:', record);
   };
 
-  const handleDeleteOrganization = (record) => {
-    setRecordToDelete(record);
-    setConfirmModalVisible(true);
-  };
+  const handleDeleteOrganization = async (record) => {
+    console.log("Deleting record:", record); // Debugging: Check if record is being set correctly
+    try {
+      const response = await fetch(`http://192.168.1.27:8000/organizations/${record.id}`, { // Replace with your API endpoint
+        method: 'DELETE',
+      });
 
-  const confirmDelete = () => {
-    setOrganizations(organizations.filter(item => item.key !== recordToDelete.key));
-    setConfirmModalVisible(false);
-    setRecordToDelete(null);
-  };
-
-  const cancelDelete = () => {
-    setConfirmModalVisible(false);
-    setRecordToDelete(null);
+      if (response.ok) {
+        setOrganizations(organizations.filter(item => item.id !== record.id));
+        message.success('Organization deleted successfully'); // Success message
+      } else {
+        message.error('Failed to delete organization'); // Error message
+      }
+    } catch (error) {
+      console.error('Error deleting organization:', error);
+      message.error('Error deleting organization'); // Error message
+    }
   };
 
   const handleSearch = (e) => {
@@ -87,7 +110,7 @@ export default function OrganizationManagement() {
       <Search
         placeholder="Search text"
         allowClear
-        onSearch={handleSearch}
+        onChange={handleSearch}
         style={{
           width: 204,
         }}
@@ -97,11 +120,6 @@ export default function OrganizationManagement() {
         visible={addFormVisible}
         onCreate={handleAddOrganization}
         onCancel={() => setAddFormVisible(false)}
-      />
-      <ConfirmationModal
-        visible={confirmModalVisible}
-        onConfirm={confirmDelete}
-        onCancel={cancelDelete}
       />
     </Content>
   );

@@ -12,6 +12,8 @@ import {
   MenuUnfoldOutlined,
   DashboardOutlined
 } from '@ant-design/icons';
+import Cookies from 'js-cookie';
+import * as jwt_decode from 'jwt-decode';
 
 const { Sider } = Layout;
 
@@ -20,6 +22,11 @@ export default function Sidebar() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState(['1']);
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+
+  // Check if the user is on the login page
+  const isLoginPage = location.pathname === '/';
 
   useEffect(() => {
     const path = location.pathname;
@@ -48,6 +55,21 @@ export default function Sidebar() {
 
     setSelectedKeys([key]);
   }, [location.pathname]);
+
+  useEffect(() => {
+    const token = Cookies.get('token');
+    if (token) {
+      try {
+        const decodedToken = jwt_decode.jwtDecode(token);
+        setUserName(decodedToken.name || 'John Doe'); // Use a default if name is not in token
+        setUserEmail(decodedToken.email || 'john.doe@example.com'); // Use a default if email is not in token
+      } catch (error) {
+        console.error('Error decoding token:', error);
+        setUserName('John Doe');
+        setUserEmail('john.doe@example.com');
+      }
+    }
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -88,6 +110,11 @@ export default function Sidebar() {
     { key: '5', icon: <HistoryOutlined />, label: 'Device Logs' },
   ];
 
+  // Conditionally render the Sidebar
+  if (isLoginPage) {
+    return null; // Don't render the sidebar on the login page
+  }
+
   return (
     <Sider
       collapsible
@@ -125,6 +152,7 @@ export default function Sidebar() {
         onClick={(e) => handleMenuClick(e.key)}
         items={items}
       >
+        
       </Menu>
         </div>
       <div style={{
@@ -136,8 +164,8 @@ export default function Sidebar() {
         right: 0,
         }}>
         <Avatar size="large" icon={<UserOutlined />} />
-        <div style={{ marginTop: '8px' }}>John Doe</div>
-        <div style={{ fontSize: '12px', color: 'rgba(0, 0, 0, 0.45)' }}>john.doe@example.com</div>
+        <div style={{ marginTop: '8px' }}>{userName}</div>
+        <div style={{ fontSize: '12px', color: 'rgba(0, 0, 0, 0.45)' }}>{userEmail}</div>
         <a onClick={handleLogout} style={{ color: '#1890ff', marginTop: '12px', display: 'block' }}>
           <LogoutOutlined /> Logout
         </a>

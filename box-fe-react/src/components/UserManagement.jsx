@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Typography, Layout, Button, Table, Space, Input } from 'antd';
 import AddUserForm from './AddUserForm';
 import ConfirmationModal from './ConfirmationModal';
-import userService from '../../../src/services/userService';
+import userService from '../services/userService';
 
 const { Content } = Layout;
 const { Title } = Typography;

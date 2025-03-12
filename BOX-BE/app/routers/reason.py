@@ -10,6 +10,10 @@ router = APIRouter(prefix="/reasons", tags=["reasons"])
 async def read_reasons(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
     return await crud.get_reasons(db, skip=skip, limit=limit)
 
+@router.get("/org/{org_id}", response_model=List[schemas.Reason])
+async def read_reasons_by_org_id(org_id: int, skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
+    return await crud.get_reasons_by_org_id(db, org_id, skip=skip, limit=limit)
+
 @router.post("/", response_model=schemas.Reason)
 async def create_reason(reason: schemas.ReasonCreate, db: AsyncSession = Depends(get_db)):
     return await crud.create_reason(db, reason)

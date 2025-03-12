@@ -9,6 +9,7 @@ const AddOrganizationForm = ({ visible, onCreate, onCancel }) => {
       title="Add New Organization"
       okText="Create"
       cancelText="Cancel"
+      visible={Boolean(visible)} // Ensure visible is a boolean
       onCancel={onCancel}
       onOk={() => {
         form

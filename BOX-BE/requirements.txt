@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+fastapi-users
+python-jose
+passlib
+bcrypt
+sqlalchemy
+asyncpg
+python-multipart
+fastapi-mail
