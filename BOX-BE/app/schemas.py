@@ -69,6 +69,7 @@ class DeviceBase(BaseModel):
     name: str
     uuid: str
     org_id: int
+    last_ping_at: Optional[datetime] = None
 
 class DeviceCreate(DeviceBase):
     pass
@@ -136,13 +137,6 @@ class DeviceLog(DeviceLogBase):
         orm_mode = True
 
 # Token schemas
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
 class TokenData(BaseModel):
-    username: Optional[str] = None
-
-class Token(BaseModel):
     access_token: str
     token_type: str

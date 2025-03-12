@@ -40,7 +40,7 @@ def decode_access_token(token: str):
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
+        username: str = payload.get("email")
         if username is None:
             raise credentials_exception
         token_data = schemas.TokenData(username=username)
@@ -56,7 +56,7 @@ async def get_current_user(db: AsyncSession = Depends(get_db), token: str = Depe
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
+        username: str = payload.get("email")
         if username is None:
             raise credentials_exception
         token_data = schemas.TokenData(username=username)

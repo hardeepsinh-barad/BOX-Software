@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta
 from typing import Any, Dict
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
-from jose import jwt
+from jose import jwt, JWTError
 from passlib.context import CryptContext
 
 from app import crud, schemas
@@ -29,7 +29,28 @@ def create_access_token(data: Dict[str, Any], expires_delta: timedelta = None) -
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
-@router.post("/token", response_model=schemas.Token)
+async def get_current_user(db: AsyncSession = Depends(get_db), token: str = Header(None)):
+    """Get the current user based on the JWT token."""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        if token is None:
+            raise credentials_exception
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        email: str = payload.get("email")
+        if email is None:
+            raise credentials_exception
+        user = await crud.get_user_by_email(db, email=email)
+        if user is None:
+            raise credentials_exception
+        return user
+    except JWTError:
+        raise credentials_exception
+
+@router.post("/token", response_model=schemas.TokenData)
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db)
@@ -42,7 +63,7 @@ async def login_for_access_token(
         )
 
     user = await crud.get_user_by_email(db, form_data.username)
-    
+    print(user)
     if not user or not verify_password(form_data.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -50,6 +71,11 @@ async def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    access_token = create_access_token(data={"sub": user.email, "user_id": user.id, "role_id": user.role_id})
+    access_token = create_access_token(data={"email":user.email,"org_id":user.org_id, "name":user.name, "contact_number":user.contact_number ,"user_id": user.id, "role_id": user.role_id})
     
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.post("/verify-token")
+async def verify_token(user: schemas.User = Depends(get_current_user)):
+    """Verify JWT token."""
+    return {"message": "Token is valid"}

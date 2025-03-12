@@ -185,18 +185,20 @@ async def create_device(db: AsyncSession, device: schemas.DeviceCreate):
 
 async def update_device(db: AsyncSession, device_id: int, device: schemas.DeviceCreate):
     db_device = await get_device(db, device_id)
-    if db_device:
-        for key, value in device.dict().items():
-            setattr(db_device, key, value)
-        await db.commit()
-        await db.refresh(db_device)
+    if db_device is None:
+        return None
+    for var, value in vars(device).items():
+        setattr(db_device, var, value) if value else None
+    await db.commit()
+    await db.refresh(db_device)
     return db_device
 
 async def delete_device(db: AsyncSession, device_id: int):
     db_device = await get_device(db, device_id)
-    if db_device:
-        await db.delete(db_device)
-        await db.commit()
+    if db_device is None:
+        return None
+    await db.delete(db_device)
+    await db.commit()
     return db_device
 
 # ---------------------------

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import organization, users, reason, device_reason_log, device_log, auth, mqtt_sender
+from app.routers import organization, users, reason, device_reason_log, device_log, auth, mqtt_sender, device
 from app.database import engine, get_db
 from app import models, crud, schemas
 
@@ -24,6 +24,7 @@ app.include_router(device_reason_log.router)
 app.include_router(device_log.router)
 app.include_router(auth.router)
 app.include_router(mqtt_sender.router, prefix="/api")
+app.include_router(device.router)
 
 # Create tables on startup (for development; use migrations in production)
 @app.on_event("startup")
@@ -47,7 +48,7 @@ async def on_startup():
                     contact_number="9874563210",
                     email="admin@cracky.com",
                     password="Admin@123",
-                    role_id=1  # Assuming role_id 1 is for super admin
+                    role_id=1  
                 ))
         finally:
             await db.close()
@@ -72,4 +73,4 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("app.main:app", host="192.168.1.5", port=8080, reload=True)

@@ -1,5 +1,7 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, func
+from sqlalchemy.orm import relationship, Mapped
+from typing import List
 
 Base = declarative_base()
 
@@ -14,8 +16,10 @@ class Organization(Base):
 class Role(Base):
     __tablename__ = "roles"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
+    name = Column(String, unique=True, nullable=False)
     permission_ids = Column(String, nullable=False)
+
+    users: Mapped[List["User"]] = relationship(back_populates="role")
 
 # User
 class User(Base):
@@ -26,7 +30,9 @@ class User(Base):
     contact_number = Column(String, nullable=True)
     email = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
-    role_id = Column(Integer,  nullable=False)
+    role_id = Column(Integer, ForeignKey("roles.id"), nullable=False)
+
+    role: Mapped["Role"] = relationship(back_populates="users")
 
 # Device
 class Device(Base):
