@@ -135,6 +135,7 @@ class DeviceLog(DeviceLogBase):
     id: int
     class Config:
         orm_mode = True
+        from_attributes = True
 
 # Token schemas
 class TokenData(BaseModel):

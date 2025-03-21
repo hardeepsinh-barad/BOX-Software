@@ -4,7 +4,8 @@ from app import models, schemas
 from app.auth import get_password_hash
 import logging
 from sqlalchemy.orm import selectinload
-from typing import List
+from typing import List, Optional
+from sqlalchemy import func
 
 
 logger = logging.getLogger(__name__)
@@ -275,3 +276,50 @@ async def delete_reason(db: AsyncSession, reason_id: int) -> models.Reason | Non
         await db.commit()
         return db_reason
     return None
+
+# ---------------------------
+# DeviceLog CRUD
+# ---------------------------
+async def get_device_log(db: AsyncSession, log_id: int):
+    result = await db.execute(select(models.DeviceLog).where(models.DeviceLog.id == log_id))
+    return result.scalars().first()
+
+async def get_device_logs(db: AsyncSession, skip: int = 0, limit: int = 100, device_id: Optional[int] = None):
+    query = select(models.DeviceLog)
+    if device_id is not None:
+        query = query.where(models.DeviceLog.device_id == device_id)
+
+    # Get total count
+    count_query = select(func.count()).select_from(query)
+    total = await db.execute(count_query)
+    total = total.scalar()
+
+    # Apply skip and limit for pagination
+    query = query.offset(skip).limit(limit)
+    result = await db.execute(query)
+    logs = result.scalars().all()
+
+    return logs, total
+
+async def create_device_log(db: AsyncSession, log: schemas.DeviceLogCreate):
+    db_log = models.DeviceLog(**log.dict())
+    db.add(db_log)
+    await db.commit()
+    await db.refresh(db_log)
+    return db_log
+
+async def update_device_log(db: AsyncSession, log_id: int, log: schemas.DeviceLogCreate):
+    db_log = await get_device_log(db, log_id)
+    if db_log:
+        for key, value in log.dict().items():
+            setattr(db_log, key, value)
+        await db.commit()
+        await db.refresh(db_log)
+    return db_log
+
+async def delete_device_log(db: AsyncSession, log_id: int):
+    db_log = await get_device_log(db, log_id)
+    if db_log:
+        await db.delete(db_log)
+        await db.commit()
+    return db_log
