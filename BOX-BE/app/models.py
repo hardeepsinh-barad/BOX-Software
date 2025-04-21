@@ -43,6 +43,9 @@ class Device(Base):
     org_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
     last_ping_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    organization = relationship("Organization", back_populates="devices")
+    device_reason_logs = relationship("DeviceReasonLog", back_populates="device")
+
 # Reason
 class Reason(Base):
     __tablename__ = "reasons"
@@ -50,6 +53,9 @@ class Reason(Base):
     reason = Column(String, nullable=False)
     key_num = Column(Integer, nullable=False)
     org_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
+
+    organization = relationship("Organization", back_populates="reasons")
+    device_reason_logs = relationship("DeviceReasonLog", back_populates="reason")
 
 # DeviceReasonLog
 class DeviceReasonLog(Base):
@@ -59,6 +65,9 @@ class DeviceReasonLog(Base):
     reason_id = Column(Integer, ForeignKey("reasons.id"), nullable=False)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
     org_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
+
+    device = relationship("Device", back_populates="device_reason_logs")
+    reason = relationship("Reason", back_populates="device_reason_logs")
 
 # DeviceLog
 class DeviceLog(Base):

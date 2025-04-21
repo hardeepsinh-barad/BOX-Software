@@ -3,7 +3,7 @@ import paho.mqtt.client as mqtt
 from app.database import async_session  # Your async session from FastAPI setup
 from app import models
 
-MQTT_BROKER = "192.168.1.34"
+MQTT_BROKER = "192.168.1.37"
 MQTT_PORT = 1883
 TOPIC = "test"
 

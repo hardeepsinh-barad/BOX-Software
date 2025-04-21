@@ -301,25 +301,38 @@ async def get_device_logs(db: AsyncSession, skip: int = 0, limit: int = 100, dev
 
     return logs, total
 
-async def create_device_log(db: AsyncSession, log: schemas.DeviceLogCreate):
-    db_log = models.DeviceLog(**log.dict())
+# ---------------------------
+# DeviceReasonLog CRUD
+# ---------------------------
+async def get_device_reason_log(db: AsyncSession, log_id: int):
+    result = await db.execute(select(models.DeviceReasonLog).where(models.DeviceReasonLog.id == log_id))
+    return result.scalars().first()
+
+async def get_device_reason_logs(db: AsyncSession, skip: int = 0, limit: int = 100):
+    result = await db.execute(select(models.DeviceReasonLog).offset(skip).limit(limit))
+    return result.scalars().all()
+
+async def create_device_reason_log(db: AsyncSession, log: schemas.DeviceReasonLogCreate):
+    db_log = models.DeviceReasonLog(**log.dict())
     db.add(db_log)
     await db.commit()
     await db.refresh(db_log)
     return db_log
 
-async def update_device_log(db: AsyncSession, log_id: int, log: schemas.DeviceLogCreate):
-    db_log = await get_device_log(db, log_id)
-    if db_log:
-        for key, value in log.dict().items():
-            setattr(db_log, key, value)
-        await db.commit()
-        await db.refresh(db_log)
+async def update_device_reason_log(db: AsyncSession, log_id: int, log: schemas.DeviceReasonLogCreate):
+    db_log = await get_device_reason_log(db, log_id)
+    if not db_log:
+        return None
+    for key, value in log.dict().items():
+        setattr(db_log, key, value)
+    await db.commit()
+    await db.refresh(db_log)
     return db_log
 
-async def delete_device_log(db: AsyncSession, log_id: int):
-    db_log = await get_device_log(db, log_id)
-    if db_log:
-        await db.delete(db_log)
-        await db.commit()
+async def delete_device_reason_log(db: AsyncSession, log_id: int):
+    db_log = await get_device_reason_log(db, log_id)
+    if not db_log:
+        return None
+    await db.delete(db_log)
+    await db.commit()
     return db_log
