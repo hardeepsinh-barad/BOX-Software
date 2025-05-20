@@ -10,7 +10,7 @@
 #define RESET_BUTTON D3
 
 #define NUM_REASON_BUTTONS 6
-const uint8_t REASON_BUTTON_PINS[NUM_REASON_BUTTONS] = {D0, D1, D2, D4, D5, D6};
+const uint8_t REASON_BUTTON_PINS[NUM_REASON_BUTTONS] = {D0, D1, D2, D4, D5, D6}; // Update as per your wiring
 bool buttonState[NUM_REASON_BUTTONS] = {HIGH, HIGH, HIGH, HIGH, HIGH, HIGH};
 unsigned long lastDebounceTime[NUM_REASON_BUTTONS] = {0};
 const unsigned long debounceDelay = 50;
@@ -37,7 +37,6 @@ const long interval = 10000; // 10 seconds
 void setup()
 {
     Serial.begin(115200);
-
     pinMode(RESET_BUTTON, INPUT_PULLUP);
     for (int i = 0; i < NUM_REASON_BUTTONS; i++)
     {
@@ -49,10 +48,8 @@ void setup()
 
     EEPROM.begin(EEPROM_SIZE);
     readStoredData();
-
-    WiFi.mode(WIFI_AP); // Ensure AP mode initially for MAC reading
-    deviceUUID = getMacID();
-    Serial.println("Device UUID: " + deviceUUID);
+    String apSSID = "CAC_" + getMacID();
+    deviceUUID = apSSID;
 
     if (isProvisioned)
     {
@@ -106,7 +103,6 @@ void loop()
         previousMillis = currentMillis;
         sendHealthStatus();
     }
-
 
     checkResetButton();
     checkReasonButtons();
@@ -230,49 +226,66 @@ return;
 String ssid = doc["ssid"];
 String password = doc["password"];
 String mqtt = doc["mqtt"];
-String orgId = doc["org_id"];
+String orgId = doc["orgId"];
 
 if (ssid.isEmpty() || password.isEmpty() || mqtt.isEmpty() || orgId.isEmpty()) {
 server.send(400, "application/json", "{\"error\":\"Missing ssid/password/mqtt/orgId\"}");
 return;
 }
 
-Serial.println("📥 Received WiFi + MQTT + org_id:");
+Serial.println("📥 Received WiFi + MQTT + orgId:");
 Serial.println("SSID: " + ssid);
 Serial.println("MQTT: " + mqtt);
-Serial.println("OrgID: " + orgId);
+// Serial.println("OrgID: " + orgId);
 
+WiFi.disconnect();
+delay(2000);
+WiFi.begin(ssid.c_str(), password.c_str());
+
+int retries = 0;
+while (WiFi.status() != WL_CONNECTED && retries < 20) {
+delay(1000);
+Serial.print(".");
+retries++;
+}
+
+if (WiFi.status() == WL_CONNECTED) {
 storedSSID = ssid;
 storedPassword = password;
 storedMQTT = mqtt;
 storedOrgId = orgId;
+Serial.println("💾 Saving Wi-Fi, MQTT, and OrgID.");
 saveStoredData();
-
 server.send(200, "application/json", "{\"status\":\"success\"}");
 Serial.println("✅ Connection successful, restarting device...");
 delay(1000);
-ESP.restart(); });
+ESP.restart();
+} else {
+Serial.println("❌ Wi-Fi connection failed after 20 retries");
+server.send(500, "application/json", "{\"status\":\"wifi_failed\"}");
+setLEDColor(255, 0, 0);
+} });
 
     server.on("/info", HTTP_GET, []()
               {
 DynamicJsonDocument doc(256);
-doc["mac"] = getMacID();
+doc["mac"] = WiFi.softAPmacAddress();
 doc["orgId"] = storedOrgId;
 String response;
 serializeJson(doc, response);
 server.send(200, "application/json", response); });
 
+    server.begin();
     Serial.println("🌐 Server started");
 }
 
 void saveStoredData()
 {
-    char ssidBuf[32] = {0}, passBuf[32] = {0}, mqttBuf[32] = {0}, orgIdBuf[32] = {0};
-
-    storedSSID.toCharArray(ssidBuf, sizeof(ssidBuf));
-    storedPassword.toCharArray(passBuf, sizeof(passBuf));
-    storedMQTT.toCharArray(mqttBuf, sizeof(mqttBuf));
-    storedOrgId.toCharArray(orgIdBuf, sizeof(orgIdBuf));
+    char ssidBuf[32], passBuf[32], mqttBuf[32], orgIdBuf[32];
+    storedSSID.toCharArray(ssidBuf, 32);
+    storedPassword.toCharArray(passBuf, 32);
+    storedMQTT.toCharArray(mqttBuf, 32);
+    storedOrgId.toCharArray(orgIdBuf, 32);
 
     EEPROM.put(0, ssidBuf);
     EEPROM.put(32, passBuf);
@@ -280,39 +293,26 @@ void saveStoredData()
     EEPROM.put(96, orgIdBuf);
     EEPROM.put(128, true);
     EEPROM.commit();
-
-    Serial.println("💾 Data saved to EEPROM:");
-    Serial.println("SSID: " + storedSSID);
-    Serial.println("MQTT: " + storedMQTT);
-    Serial.println("OrgID: " + storedOrgId);
 }
 
 void readStoredData()
 {
-    char ssidBuf[32] = {0}, passBuf[32] = {0}, mqttBuf[32] = {0}, orgIdBuf[32] = {0};
-    bool provisionedFlag = false;
-
+    char ssidBuf[32], passBuf[32], mqttBuf[32], orgIdBuf[32];
     EEPROM.get(0, ssidBuf);
     EEPROM.get(32, passBuf);
     EEPROM.get(64, mqttBuf);
     EEPROM.get(96, orgIdBuf);
-    EEPROM.get(128, provisionedFlag);
+    EEPROM.get(128, isProvisioned);
 
     storedSSID = String(ssidBuf).c_str();
     storedPassword = String(passBuf).c_str();
     storedMQTT = String(mqttBuf).c_str();
     storedOrgId = String(orgIdBuf).c_str();
-    isProvisioned = provisionedFlag;
 
     storedSSID.trim();
     storedPassword.trim();
     storedMQTT.trim();
     storedOrgId.trim();
-
-    Serial.println("🔄 Loaded from EEPROM:");
-    Serial.println("SSID: " + storedSSID);
-    Serial.println("MQTT: " + storedMQTT);
-    Serial.println("OrgID: " + storedOrgId);
 }
 
 void checkResetButton()
@@ -344,12 +344,10 @@ void resetStoredData()
 String getMacID()
 {
     uint8_t mac[6];
-    WiFi.softAPmacAddress(mac);
+    WiFi.macAddress(mac);
     String macStr = "";
     for (int i = 0; i < 6; i++)
     {
-        if (mac[i] < 0x10)
-            macStr += "0";
         macStr += String(mac[i], HEX);
     }
     return macStr;

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import organization, users, reason, device_reason_log, device_log, auth, mqtt_sender, device
+from app.routers import organization, users, reason, device_reason_log, device_log, auth, mqtt_sender, device, reason_alert
 from app.database import engine, get_db
 from app import models, crud, schemas
 
@@ -25,6 +25,7 @@ app.include_router(device_log.router)
 app.include_router(auth.router)
 app.include_router(mqtt_sender.router, prefix="/api")
 app.include_router(device.router)
+app.include_router(reason_alert.router)
 
 # Create tables on startup (for development; use migrations in production)
 @app.on_event("startup")
@@ -42,6 +43,7 @@ async def on_startup():
             
             super_admin = await crud.get_user_by_email(db, "admin@cracky.com")
             if not super_admin:
+                # Assuming role_id 1 exists for Super Admin role
                 await crud.create_user(db, schemas.UserCreate(
                     org_id=super_admin_org.id,
                     name="Super Admin",

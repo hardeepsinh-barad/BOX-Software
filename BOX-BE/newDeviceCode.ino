@@ -51,7 +51,8 @@ void setup()
     readStoredData();
 
     WiFi.mode(WIFI_AP); // Ensure AP mode initially for MAC reading
-    deviceUUID = getMacID();
+    String apSSID = "CAC_" + getMacID();
+    deviceUUID = apSSID;
     Serial.println("Device UUID: " + deviceUUID);
 
     if (isProvisioned)

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Any, Dict
-from fastapi import APIRouter, Depends, HTTPException, status, Header
+from fastapi import APIRouter, Depends, HTTPException, status,Header
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import jwt, JWTError
@@ -56,14 +56,7 @@ async def login_for_access_token(
     db: AsyncSession = Depends(get_db)
 ):
     """Authenticate user and generate JWT token."""
-    if form_data.grant_type and form_data.grant_type != "password":
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Unsupported grant type",
-        )
-
     user = await crud.get_user_by_email(db, form_data.username)
-    print(user)
     if not user or not verify_password(form_data.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

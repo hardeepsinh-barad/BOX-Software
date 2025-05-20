@@ -59,6 +59,7 @@ class DeviceReasonLog(Base):
     id = Column(Integer, primary_key=True, index=True)
     device_id = Column(Integer, ForeignKey("devices.id"), nullable=False)
     reason_id = Column(Integer, ForeignKey("reasons.id"), nullable=False)
+    org_id = Column(Integer, ForeignKey("organizations.id"), nullable=False)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
     device = relationship("Device", back_populates="device_reason_logs")
     reason = relationship("Reason", back_populates="device_reason_logs")

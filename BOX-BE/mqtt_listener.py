@@ -2,7 +2,7 @@ import asyncio
 import paho.mqtt.client as mqtt
 from app.database import async_session  # Your async session from FastAPI setup
 from app import models
-
+import datetime
 MQTT_BROKER = "192.168.1.37"
 MQTT_PORT = 1883
 TOPIC = "test"
@@ -26,6 +26,16 @@ async def store_mqtt_data(data: str):
         session.add(device_data)
         await session.commit()
         print("Data stored in database:", data)
+
+async def ping_device(device_uuid: str):
+    async with async_session() as session:
+        device = await session.query(models.Device).filter_by(uuid=device_uuid).first()
+        if device:
+            device.last_ping_at = datetime.datetime.now(datetime.timezone.utc)
+            await session.commit()
+            print(f"Updated last ping for device {device_uuid}")
+        else:
+            print(f"Device {device_uuid} not found")
 
 def main():
     client = mqtt.Client()
