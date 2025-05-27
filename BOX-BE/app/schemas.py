@@ -12,8 +12,10 @@ class OrganizationCreate(OrganizationBase):
 
 class Organization(OrganizationBase):
     id: int
+    device_count: Optional[int] = 0
     class Config:
         orm_mode = True
+        from_attributes = True
 
 # Role schemas
 class RoleBase(BaseModel):
@@ -76,9 +78,11 @@ class DeviceCreate(DeviceBase):
 
 class Device(DeviceBase):
     id: int
+    organization_name: Optional[str] = None  # Add organization_name
     last_ping_at: datetime
     class Config:
         orm_mode = True
+        from_attributes = True
 
 # OrgDeviceMap schemas
 class OrgDeviceMapBase(BaseModel):

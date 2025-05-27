@@ -37,18 +37,18 @@ async def on_startup():
     # Create super admin organization and user
     async for db in get_db():
         try:
-            super_admin_org = await crud.get_organization_by_name(db, "Cracky")
+            super_admin_org = await crud.get_organization_by_name(db, "Cactus")
             if not super_admin_org:
                 super_admin_org = await crud.create_organization(db, schemas.OrganizationCreate(name="Cracky", email="admin@cracky.com"))
             
-            super_admin = await crud.get_user_by_email(db, "admin@cracky.com")
+            super_admin = await crud.get_user_by_email(db, "admin@cactus.com")
             if not super_admin:
                 # Assuming role_id 1 exists for Super Admin role
                 await crud.create_user(db, schemas.UserCreate(
                     org_id=super_admin_org.id,
                     name="Super Admin",
                     contact_number="9874563210",
-                    email="admin@cracky.com",
+                    email="admin@cactus.com",
                     password="Admin@123",
                     role_id=1  
                 ))

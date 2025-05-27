@@ -3,9 +3,10 @@ from sqlalchemy.future import select
 from app import models, schemas
 from app.auth import get_password_hash
 import logging
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 from typing import List, Optional
-from sqlalchemy import func
+from sqlalchemy import func, cast, Integer
+from sqlalchemy.sql import expression
 
 
 logger = logging.getLogger(__name__)
@@ -21,8 +22,34 @@ async def get_organization_by_name(db: AsyncSession, name: str):
     return result.scalars().first()
 
 async def get_organizations(db: AsyncSession, skip: int = 0, limit: int = 100):
-    result = await db.execute(select(models.Organization).offset(skip).limit(limit))
-    return result.scalars().all()
+    # Subquery to count devices per organization
+    device_counts = (
+        select(
+            models.Device.organization_id,
+            func.count(models.Device.id).label("device_count")
+        )
+        .group_by(models.Device.organization_id)
+        .alias("device_counts")
+    )
+
+    # Main query to fetch organizations and their device counts
+    query = (
+        select(
+            models.Organization,
+            device_counts.c.device_count
+        )
+        .outerjoin(device_counts, models.Organization.id == device_counts.c.organization_id)
+        .offset(skip)
+        .limit(limit)
+    )
+
+    result = await db.execute(query)
+    organizations = []
+    for org, device_count in result.all():
+        org_data = schemas.Organization.from_orm(org)
+        org_data.device_count = device_count or 0  # Use 0 if device_count is None
+        organizations.append(org_data)
+    return organizations
 
 async def create_organization(db: AsyncSession, organization: schemas.OrganizationCreate):
     db_org = models.Organization(**organization.dict())
@@ -171,11 +198,21 @@ async def get_user_by_email(db: AsyncSession, email: str):
 # Device CRUD
 # ---------------------------
 async def get_device(db: AsyncSession, device_id: int):
-    result = await db.execute(select(models.Device).where(models.Device.id == device_id))
-    return result.scalars().first()
+    result = await db.execute(
+        select(models.Device)
+        .options(joinedload(models.Device.organization))
+        .where(models.Device.id == device_id)
+    )
+    device = result.scalars().first()
+    return device
 
 async def get_devices(db: AsyncSession, skip: int = 0, limit: int = 100):
-    result = await db.execute(select(models.Device).offset(skip).limit(limit))
+    result = await db.execute(
+        select(models.Device)
+        .options(joinedload(models.Device.organization))
+        .offset(skip)
+        .limit(limit)
+    )
     return result.scalars().all()
 
 async def create_device(db: AsyncSession, device: schemas.DeviceCreate):

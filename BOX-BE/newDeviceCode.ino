@@ -5,7 +5,7 @@
 #include <ArduinoJson.h>
 
 #define EEPROM_SIZE 512
-#define MQTT_PORT 1883
+#define MQTT_PORT 1883          
 #define AP_PASSWORD "cactus@123"
 #define RESET_BUTTON D3
 
@@ -51,8 +51,7 @@ void setup()
     readStoredData();
 
     WiFi.mode(WIFI_AP); // Ensure AP mode initially for MAC reading
-    String apSSID = "CAC_" + getMacID();
-    deviceUUID = apSSID;
+    deviceUUID = getMacID();
     Serial.println("Device UUID: " + deviceUUID);
 
     if (isProvisioned)

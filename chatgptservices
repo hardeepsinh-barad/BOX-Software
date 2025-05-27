@@ -1,0 +1,88 @@
+To run your Python MQTT executor script as a **systemd service** on Ubuntu, follow these steps:
+
+---
+
+### ✅ 1. Save Your Script
+
+Save your script as a Python file, for example:
+
+```bash
+/home/youruser/mqtt_executor.py
+```
+
+Ensure the script is executable:
+
+```bash
+chmod +x /home/youruser/mqtt_executor.py
+```
+
+---
+
+### ✅ 2. Create a systemd Service File
+
+Create a service unit file (you’ll need `sudo` permissions):
+
+```bash
+sudo nano /etc/systemd/system/mqtt_executor.service
+```
+
+Paste the following into the file (edit paths and usernames accordingly):
+
+```ini
+[Unit]
+Description=MQTT Terminal Command Executor
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/youruser/mqtt_executor.py
+WorkingDirectory=/home/youruser
+StandardOutput=journal
+StandardError=journal
+Restart=always
+User=youruser
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+```
+
+> Replace `/home/youruser` with your actual user home path and `youruser` with your actual username.
+
+---
+
+### ✅ 3. Reload systemd and Enable the Service
+
+```bash
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl enable mqtt_executor.service
+sudo systemctl start mqtt_executor.service
+```
+
+---
+
+### ✅ 4. Check Status and Logs
+
+Check if the service is running:
+
+```bash
+sudo systemctl status mqtt_executor.service
+```
+
+Check logs:
+
+```bash
+journalctl -u mqtt_executor.service -f
+```
+
+---
+
+### ✅ Optional: Debug Tips
+
+* Make sure Python is installed: `which python3`
+* If you're using a virtual environment, specify the full path to the Python interpreter in `ExecStart`.
+* Use `Environment=...` for any required environment variables.
+
+---
+
+Let me know if you'd like the same setup using a virtual environment or Docker!
